@@ -12,10 +12,10 @@ import (
 	"github.com/google/uuid"
 )
 
-var (
-	receipts []domain.Receipt
-	mu       sync.Mutex // Mutex para asegurar la seguridad de concurrencia
-)
+// var (
+// 	receipts []domain.Receipt
+// 	mu       sync.Mutex // Mutex para asegurar la seguridad de concurrencia
+// )
 
 type ReceiptService interface {
 	GetReceipts() ([]domain.Receipt, error)
@@ -23,19 +23,22 @@ type ReceiptService interface {
 	GetReceiptPoints(string) (domain.ReceiptPointsResponse, error)
 }
 
-type receiptService struct{}
+type receiptService struct {
+	receipts []domain.Receipt
+	mu       sync.Mutex // Mutex para asegurar la seguridad de concurrencia
+}
 
 func NewReceiptService() ReceiptService {
 	return &receiptService{}
 }
 
 func (s *receiptService) GetReceipts() ([]domain.Receipt, error) {
-	mu.Lock()
-	defer mu.Unlock()
-	if len(receipts) == 0 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.receipts) == 0 {
 		return nil, nil
 	}
-	return receipts, nil
+	return s.receipts, nil
 }
 
 func (s *receiptService) ProcessReceipt(data domain.Receipt) (domain.ReceiptProcessResponse, error) {
@@ -55,9 +58,9 @@ func (s *receiptService) ProcessReceipt(data domain.Receipt) (domain.ReceiptProc
 		Total:        data.Total,
 	}
 
-	mu.Lock()
-	receipts = append(receipts, receipt)
-	mu.Unlock()
+	s.mu.Lock()
+	s.receipts = append(s.receipts, receipt)
+	s.mu.Unlock()
 
 	return res, nil
 }
@@ -68,7 +71,7 @@ func (s *receiptService) GetReceiptPoints(id string) (domain.ReceiptPointsRespon
 	var res domain.ReceiptPointsResponse
 	var points int
 
-	for _, receipt := range receipts {
+	for _, receipt := range s.receipts {
 		if receipt.ID == id {
 			// Calcular puntos
 			fmt.Println(receipt)
