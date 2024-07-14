@@ -17,13 +17,28 @@ var (
 	mu       sync.Mutex // Mutex para asegurar la seguridad de concurrencia
 )
 
-func GetReceipt() []domain.Receipt {
-	mu.Lock()
-	defer mu.Unlock()
-	return receipts
+type ReceiptService interface {
+	GetReceipts() ([]domain.Receipt, error)
+	ProcessReceipt(domain.Receipt) (domain.ReceiptProcessResponse, error)
+	GetReceiptPoints(string) (domain.ReceiptPointsResponse, error)
 }
 
-func ProcessReceipt(data domain.Receipt) (domain.ReceiptProcessResponse, error) {
+type receiptService struct{}
+
+func NewReceiptService() ReceiptService {
+	return &receiptService{}
+}
+
+func (s *receiptService) GetReceipts() ([]domain.Receipt, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	if len(receipts) == 0 {
+		return nil, nil
+	}
+	return receipts, nil
+}
+
+func (s *receiptService) ProcessReceipt(data domain.Receipt) (domain.ReceiptProcessResponse, error) {
 	// Generar un UUID aleatorio
 	id := uuid.New().String()
 	res := domain.ReceiptProcessResponse{
@@ -48,7 +63,7 @@ func ProcessReceipt(data domain.Receipt) (domain.ReceiptProcessResponse, error) 
 }
 
 // GetReceiptPoints calcula los puntos de un recibo dado su ID
-func GetReceiptPoints(id string) (domain.ReceiptPointsResponse, error) {
+func (s *receiptService) GetReceiptPoints(id string) (domain.ReceiptPointsResponse, error) {
 	fmt.Println(id)
 	var res domain.ReceiptPointsResponse
 	var points int
